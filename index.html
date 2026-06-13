@@ -29,7 +29,7 @@
             flex-direction: column;
             align-items: center;
             width: 100%;
-            overflow-x: hidden; /* 強制消除手機左右晃動，一打開完美貼合 */
+            overflow-x: hidden;
         }
         @media (min-width: 768px) {
             body { padding: 20px; }
@@ -39,6 +39,7 @@
             max-width: 1550px;
             width: 100%;
         }
+
         header {
             margin-bottom: 16px;
             text-align: center;
@@ -141,10 +142,21 @@
             border-collapse: collapse;
             text-align: left;
             font-size: 0.88rem;
-            min-width: 750px; 
+            min-width: 800px; 
         }
         th, td { padding: 12px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
         th { background-color: #f1f5f9; font-weight: 600; color: #475569; }
+        
+        /* 強制欄位展開，禁止垂直擠壓斷行 */
+        .col-payer {
+            width: 80px;
+            white-space: nowrap;
+        }
+        .col-action {
+            width: 70px;
+            white-space: nowrap;
+            text-align: center;
+        }
         
         .settlement-item-block {
             display: flex;
@@ -231,7 +243,6 @@
                         <option value="電費">⚡ 電費</option>
                         <option value="瓦斯">🔥 瓦斯</option>
                         <option value="網路費">🌐 網路費</option>
-                         <option value="管理費">🧾 管理費</option>
                         <option value="雜費">📦 雜費</option>
                     </select>
                 </div>
@@ -280,9 +291,9 @@
                             <th>類別</th>
                             <th>帳單名稱/時期</th>
                             <th>總額</th>
-                            <th>代墊人</th>
+                            <th class="col-payer">代墊人</th>
                             <th style="width: 32%;">應付人與收款狀態 (結算行專用)</th>
-                            <th>操作</th>
+                            <th class="col-action">操作</th>
                         </tr>
                     </thead>
                     <tbody id="expense-list"></tbody>
@@ -334,8 +345,8 @@
 <script>
     const roommates = ['詹子', '張正', '李宜', '劉紫', '李翊'];
     
-    // 【核心修正】：更換全新的儲存庫金鑰名稱，強制衝刷掉手機上殘留的舊資料
-    let expenses = JSON.parse(localStorage.getItem('rent_expenses_mobile_final_v14')) || [];
+    // 使用專屬金鑰儲存
+    let expenses = JSON.parse(localStorage.getItem('rent_expenses_mobile_final_v15')) || [];
     let selectedIds = []; 
     let computedActions = []; 
     
@@ -491,7 +502,7 @@
     }
 
     function saveAndRender() {
-        localStorage.setItem('rent_expenses_mobile_final_v14', JSON.stringify(expenses));
+        localStorage.setItem('rent_expenses_mobile_final_v15', JSON.stringify(expenses));
         renderTable();
         calculateBalances();
     }
@@ -550,7 +561,7 @@
                     <td style="font-weight:600; color:#b45309;">$${exp.amount}</td>
                     <td style="color:#94a3b8;">---</td>
                     <td>${actionsHTML}</td>
-                    <td><button class="delete-btn" onclick="deleteExpense(${exp.id})">刪除</button></td>
+                    <td class="col-action"><button class="delete-btn" onclick="deleteExpense(${exp.id})">刪除</button></td>
                 `;
             } else {
                 const isChecked = selectedIds.includes(exp.id);
@@ -562,9 +573,9 @@
                     <td>${exp.category}</td>
                     <td style="font-weight:600; color:#334155;">${exp.title}</td>
                     <td style="font-weight:600; color:#1e1b4b;">$${exp.amount}</td>
-                    <td><span class="payer-badge">${exp.payer}</span></td>
+                    <td class="col-payer"><span class="payer-badge">${exp.payer}</span></td>
                     <td></td>
-                    <td><button class="delete-btn" onclick="deleteExpense(${exp.id})">刪除</button></td>
+                    <td class="col-action"><button class="delete-btn" onclick="deleteExpense(${exp.id})">刪除</button></td>
                 `;
             }
             tbody.appendChild(tr);
