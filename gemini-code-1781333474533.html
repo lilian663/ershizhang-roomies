@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>二十張路租屋處公費試算</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --success: #16a34a;
+            --success-hover: #15803d;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 1550px;
+            width: 100%;
+        }
+        header {
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        h1 { margin-bottom: 8px; color: #0f172a; font-size: 1.8rem; }
+        
+        /* 【欄位寬度極致優化】再度拉寬左右兩欄（1.6fr），適度縮短中欄（1.8fr） */
+        .three-column-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            margin-bottom: 24px;
+            align-items: start;
+        }
+        @media (min-width: 1200px) {
+            .three-column-grid {
+                grid-template-columns: 1.6fr 1.8fr 1.6fr; 
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border);
+            height: fit-content;
+            margin-bottom: 24px;
+        }
+        .card:last-child { margin-bottom: 0; }
+        
+        h2 { font-size: 1.15rem; margin-top: 0; margin-bottom: 16px; border-bottom: 2px solid var(--border); padding-bottom: 8px; color: #334155; }
+        .form-group { margin-bottom: 14px; }
+        label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.9rem; }
+        input, select {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            box-sizing: border-box;
+            font-size: 0.95rem;
+            background-color: #fff;
+        }
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 6px;
+        }
+        .checkbox-group label {
+            font-weight: normal;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            background: #f1f5f9;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        .checkbox-group input { width: auto; margin: 0; }
+        
+        button.btn {
+            width: 100%;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: background 0.2s;
+        }
+        button.primary-btn { background-color: var(--primary); color: white; }
+        button.primary-btn:hover { background-color: var(--primary-hover); }
+        button.success-btn { background-color: var(--success); color: white; margin-top: 12px; }
+        button.success-btn:hover { background-color: var(--success-hover); }
+        button.success-btn:disabled { background-color: #cbd5e1; color: #94a3b8; cursor: not-allowed; }
+        
+        .table-wrapper { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; background: white; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.88rem;
+            min-width: 750px; /* 縮短中欄後，微調最低寬度確保小螢幕不破版 */
+        }
+        th, td { padding: 12px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        th { background-color: #f1f5f9; font-weight: 600; color: #475569; }
+        
+        .settlement-item-block {
+            display: flex;
+            flex-direction: column;
+            background: #ffffff;
+            border: 1px solid #fcd34d;
+            padding: 6px 10px;
+            border-radius: 6px;
+            margin: 4px 0;
+            gap: 6px;
+        }
+        .settlement-text-info { font-size: 0.85rem; color: #78350f; font-weight: 500; line-height: 1.3; }
+
+        .status-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+            width: max-content;
+        }
+        .status-btn.paid { background-color: #dcfce7; color: #166534; border-color: #bbf7d0; }
+        .status-btn.unpaid { background-color: #fee2e2; color: #991b1b; border-color: #fecaca; }
+        
+        .payer-badge { background-color: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
+        .delete-btn { background: none; border: none; color: #ef4444; cursor: pointer; padding: 0; font-size: 0.85rem; text-decoration: underline; }
+        .delete-btn:hover { color: #b91c1c; }
+
+        .summary-box { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 12px; }
+        @media (min-width: 1300px) { .summary-box { grid-template-columns: repeat(2, 1fr); } }
+        .summary-item { background: #f1f5f9; padding: 10px 6px; border-radius: 8px; text-align: center; }
+        .summary-item h3 { margin: 0 0 4px 0; font-size: 0.85rem; color: #64748b; }
+        .summary-item p { margin: 0; font-size: 1rem; font-weight: bold; }
+        .pay-date-text { font-size: 0.68rem; color: #15803d; font-weight: normal; display: block; margin-top: 1px; }
+        
+        .row-checkbox { transform: scale(1.1); cursor: pointer; }
+        .selected-row { background-color: #f0fdf4 !important; }
+        .settlement-row { background-color: #fffbeb; }
+
+        .pagination-container { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 16px; }
+        .page-btn { background-color: #ffffff; border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
+        .page-btn:disabled { color: #cbd5e1; cursor: not-allowed; }
+        .page-info { font-size: 0.85rem; color: #64748b; }
+
+        .bank-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 12px; }
+        .bank-card { background-color: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+        .bank-card h4 { margin: 0 0 8px 0; color: #1e293b; font-size: 1rem; border-left: 3px solid var(--primary); padding-left: 8px; }
+        .bank-info { font-size: 0.85rem; color: #475569; margin: 4px 0; line-height: 1.4; }
+        .bank-info strong { color: #0f172a; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>二十張路租屋公費試算系統</h1>
+        <p style="color: #64748b; margin: 0; font-size: 0.95rem;">室友成員：詹子、張正、李宜、劉紫、李翊</p>
+    </header>
+
+    <div class="three-column-grid">
+        
+        <div class="card">
+            <h2>登記一筆公費</h2>
+            <form id="expense-form">
+                <div class="form-group">
+                    <label for="title">帳單名稱 / 費用時期</label>
+                    <input type="text" id="title" placeholder="例如：5-6月電費、6月網路費" required>
+                </div>
+                <div class="form-group">
+                    <label for="category">費用類別</label>
+                    <select id="category" required>
+                        <option value="水費">💧 水費</option>
+                        <option value="電費">⚡ 電費</option>
+                        <option value="瓦斯">🔥 瓦斯</option>
+                        <option value="網路費">🌐 網路費</option>
+                        <option value="雜費">📦 雜費</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="amount">總金額</label>
+                    <input type="number" id="amount" min="0" placeholder="請輸入金額" required>
+                </div>
+                <div class="form-group">
+                    <label for="payer">誰付的錢 (代墊人)</label>
+                    <select id="payer" required>
+                        <option value="詹子">詹子</option>
+                        <option value="張正">張正</option>
+                        <option value="李宜">李宜</option>
+                        <option value="劉紫">劉紫</option>
+                        <option value="李翊">李翊</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>誰要分攤 (應分攤室友)</label>
+                    <div class="checkbox-group" id="sharers-group">
+                        <label><input type="checkbox" value="詹子" checked> 詹子</label>
+                        <label><input type="checkbox" value="張正" checked> 張正</label>
+                        <label><input type="checkbox" value="李宜" checked> 李宜</label>
+                        <label><input type="checkbox" value="劉紫" checked> 劉紫</label>
+                        <label><input type="checkbox" value="李翊" checked> 李翊</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="update-date">登記日期</label>
+                    <input type="date" id="update-date" required>
+                </div>
+                <button type="submit" class="btn primary-btn">新增至帳單列表</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>租屋帳單與結算明細紀錄 (由舊到新排序)</h2>
+            <p style="font-size: 0.83rem; color: #64748b; margin-top: -10px; margin-bottom: 15px;">💡 每滿 30 筆自動分頁。勾選核取方塊組合帳單，右側看板會即時運算。</p>
+            
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 40px; text-align: center;"><input type="checkbox" id="select-all" onclick="toggleSelectAll(this)"></th>
+                            <th>日期</th>
+                            <th>類別</th>
+                            <th>帳單名稱/時期</th>
+                            <th>總額</th>
+                            <th>代墊人</th>
+                            <th style="width: 32%;">應付人與收款狀態 (結算行專用)</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expense-list"></tbody>
+                </table>
+            </div>
+
+            <div class="pagination-container">
+                <button class="page-btn" id="btn-prev" onclick="changePage(-1)">上一頁</button>
+                <span class="page-info" id="page-text">第 1 / 1 頁</span>
+                <button class="page-btn" id="btn-next" onclick="changePage(1)">下一頁</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>項目試算 (即時加總)</h2>
+            <p style="font-size: 0.83rem; color: #64748b; margin-top: -10px;">💡 請在中欄勾選欲進行結算的普通項目。</p>
+            <div class="summary-box" id="balances-output"></div>
+            <div style="margin-top: 14px; font-size: 0.85rem; color: #475569; line-height: 1.5; background: #f8fafc; padding: 10px; border-radius: 6px;" id="settlement-strategy"></div>
+            <button id="batch-settle-btn" class="btn success-btn" disabled onclick="createSettlementRow()">🧾 結算勾選項目</button>
+        </div>
+
+    </div>
+
+    <div class="card" style="width: 100%; box-sizing: border-box;">
+        <h2>🏦 室友銀行帳戶資訊</h2>
+        <div class="bank-grid">
+            <div class="bank-card">
+                <h4>詹子</h4>
+                <div class="bank-info">銀行：<strong>○○銀行</strong></div>
+                <div class="bank-info">代號：<strong>000</strong></div>
+                <div class="bank-info">帳號：<strong>0000-0000-0000</strong></div>
+            </div>
+            <div class="bank-card">
+                <h4>李宜</h4>
+                <div class="bank-info">銀行：<strong>中國信託</strong></div>
+                <div class="bank-info">代號：<strong>822</strong></div>
+                <div class="bank-info">帳號：<strong>7725-4028-7970</strong></div>
+            </div>
+            <div class="bank-card">
+                <h4>劉紫</h4>
+                <div class="bank-info">銀行：<strong>中國信託</strong></div>
+                <div class="bank-info">代號：<strong>822</strong></div>
+                <div class="bank-info">帳號：<strong>7725-4029-5658</strong></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const roommates = ['詹子', '張正', '李宜', '劉紫', '李翊'];
+    let expenses = JSON.parse(localStorage.getItem('rent_expenses_v12_final')) || [];
+    let selectedIds = []; 
+    let computedActions = []; 
+    
+    let currentPage = 1;
+    const recordsPerPage = 30; 
+    
+    document.getElementById('update-date').value = new Date().toISOString().split('T')[0];
+
+    document.getElementById('expense-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const title = document.getElementById('title').value;
+        const category = document.getElementById('category').value;
+        const amount = parseFloat(document.getElementById('amount').value);
+        const payer = document.getElementById('payer').value;
+        const updateDate = document.getElementById('update-date').value;
+
+        const sharersCheckboxes = document.querySelectorAll('#sharers-group input:checked');
+        const checkedRoommates = Array.from(sharersCheckboxes).map(cb => cb.value);
+
+        if (checkedRoommates.length === 0) {
+            alert('請至少選擇一位需要分攤的室友！');
+            return;
+        }
+
+        const expense = {
+            id: Date.now(),
+            isSettlementReport: false,
+            title,
+            category,
+            amount,
+            payer,
+            sharers: checkedRoommates,
+            updateDate
+        };
+
+        expenses.push(expense);
+        
+        const totalPages = Math.ceil(expenses.length / recordsPerPage);
+        currentPage = totalPages || 1;
+
+        saveAndRender();
+        
+        document.getElementById('title').value = '';
+        document.getElementById('amount').value = '';
+    });
+
+    function handleRowCheckboxChange(id, isChecked) {
+        if (isChecked) {
+            if (!selectedIds.includes(id)) selectedIds.push(id);
+        } else {
+            selectedIds = selectedIds.filter(sid => sid !== id);
+        }
+        calculateBalances();
+        renderTableOnly(); 
+    }
+
+    function toggleSelectAll(masterCheckbox) {
+        const currentItems = getCurrentPageItems();
+        currentItems.forEach(exp => {
+            if (!exp.isSettlementReport) {
+                if (masterCheckbox.checked) {
+                    if (!selectedIds.includes(exp.id)) selectedIds.push(exp.id);
+                } else {
+                    selectedIds = selectedIds.filter(sid => sid !== exp.id);
+                }
+            }
+        });
+        saveAndRender();
+    }
+
+    function changePage(direction) {
+        currentPage += direction;
+        saveAndRender();
+    }
+
+    function getCurrentPageItems() {
+        expenses.sort((a,b) => a.id - b.id);
+        const startIndex = (currentPage - 1) * recordsPerPage;
+        const endIndex = startIndex + recordsPerPage;
+        return expenses.slice(startIndex, endIndex);
+    }
+
+    function toggleSettlementPaidStatus(rowId, actionIndex) {
+        const row = expenses.find(exp => exp.id === rowId);
+        if (row && row.actionsList && row.actionsList[actionIndex]) {
+            const currentStatus = row.actionsList[actionIndex].isPaid;
+            if (!currentStatus) {
+                row.actionsList[actionIndex].isPaid = true;
+                row.actionsList[actionIndex].payDate = new Date().toISOString().split('T')[0];
+            } else {
+                row.actionsList[actionIndex].isPaid = false;
+                row.actionsList[actionIndex].payDate = '';
+            }
+            saveAndRender();
+        }
+    }
+
+    function createSettlementRow() {
+        if (selectedIds.length === 0) return;
+        
+        const selectedExpenses = expenses.filter(exp => selectedIds.includes(exp.id) && !exp.isSettlementReport);
+        if (selectedExpenses.length === 0) {
+            alert('請選擇有效的費用帳單進行結算！');
+            return;
+        }
+        
+        const titlesCompiled = selectedExpenses.map(e => e.title).join(', ');
+        
+        if (confirm(`確認要對這 ${selectedExpenses.length} 筆項目進行結算嗎？`)) {
+            const today = new Date().toISOString().split('T')[0];
+            
+            const actionsListForStorage = computedActions.map(act => ({
+                from: act.from,
+                to: act.to,
+                amount: act.amount,
+                isPaid: false,
+                payDate: ''
+            }));
+
+            const settlementRow = {
+                id: Date.now(),
+                isSettlementReport: true,
+                title: `結算項目：${titlesCompiled}`,
+                category: '結算報告',
+                amount: selectedExpenses.reduce((sum, e) => sum + e.amount, 0),
+                payer: '---',
+                updateDate: today, 
+                actionsList: actionsListForStorage
+            };
+
+            expenses.push(settlementRow);
+            selectedIds = [];
+            document.getElementById('select-all').checked = false;
+            
+            const totalPages = Math.ceil(expenses.length / recordsPerPage);
+            currentPage = totalPages || 1;
+
+            saveAndRender();
+        }
+    }
+
+    function deleteExpense(id) {
+        if(confirm('確定要刪除這筆紀錄嗎？')) {
+            expenses = expenses.filter(exp => exp.id !== id);
+            selectedIds = selectedIds.filter(sid => sid !== id);
+            
+            const totalPages = Math.ceil(expenses.length / recordsPerPage) || 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+
+            saveAndRender();
+        }
+    }
+
+    function saveAndRender() {
+        localStorage.setItem('rent_expenses_v12_final', JSON.stringify(expenses));
+        renderTable();
+        calculateBalances();
+    }
+
+    function renderTableOnly() {
+        const tbody = document.getElementById('expense-list');
+        const pageItems = getCurrentPageItems();
+        tbody.innerHTML = '';
+
+        if(pageItems.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:30px;">目前沒有任何款項紀錄</td></tr>`;
+            return;
+        }
+
+        pageItems.forEach(exp => {
+            const tr = document.createElement('tr');
+            
+            if (exp.isSettlementReport) {
+                tr.className = 'settlement-row';
+                
+                let actionsHTML = '<div style="display:flex; flex-direction:column; gap:4px; width: 100%;">';
+                if (exp.actionsList && exp.actionsList.length > 0) {
+                    exp.actionsList.forEach((act, index) => {
+                        if (act.isPaid) {
+                            actionsHTML += `
+                                <div class="settlement-item-block" style="border-color:#bbf7d0; background:#f0fdf4;">
+                                    <span class="settlement-text-info" style="color:#166534; text-decoration: line-through;">
+                                        👉 <b>${act.from}</b> 需給 <b>${act.to}</b> $${act.amount} 元
+                                    </span>
+                                    <button class="status-btn paid" onclick="toggleSettlementPaidStatus(${exp.id}, ${index})">
+                                        ✅ 已交 <span class="pay-date-text">(${act.payDate})</span>
+                                    </button>
+                                </div>`;
+                        } else {
+                            actionsHTML += `
+                                <div class="settlement-item-block">
+                                    <span class="settlement-text-info">
+                                        👉 <b>${act.from}</b> 需給 <b>${act.to}</b> <b>$${act.amount}</b> 元
+                                    </span>
+                                    <button class="status-btn unpaid" onclick="toggleSettlementPaidStatus(${exp.id}, ${index})">
+                                        ❌ 未交
+                                    </button>
+                                </div>`;
+                        }
+                    });
+                } else {
+                    actionsHTML += '<small style="color:#16a34a; font-weight:bold;">🎉 此期金額完全對平，不需轉帳！</small>';
+                }
+                actionsHTML += '</div>';
+
+                tr.innerHTML = `
+                    <td></td>
+                    <td><small style="color:#b45309; font-weight:bold;">${exp.updateDate}</small></td>
+                    <td><span style="font-size:0.8rem; background:#fef3c7; color:#b45309; padding:2px 6px; border-radius:4px; font-weight:bold;">${exp.category}</span></td>
+                    <td style="color: #b45309; font-weight: bold; line-height: 1.4;">${exp.title}</td>
+                    <td style="font-weight:600; color:#b45309;">$${exp.amount}</td>
+                    <td style="color:#94a3b8;">---</td>
+                    <td>${actionsHTML}</td>
+                    <td><button class="delete-btn" onclick="deleteExpense(${exp.id})">刪除</button></td>
+                `;
+            } else {
+                const isChecked = selectedIds.includes(exp.id);
+                if (isChecked) tr.className = 'selected-row';
+                
+                tr.innerHTML = `
+                    <td style="text-align:center;"><input type="checkbox" class="row-checkbox" data-id="${exp.id}" ${isChecked ? 'checked' : ''} onchange="handleRowCheckboxChange(${exp.id}, this.checked)"></td>
+                    <td>${exp.updateDate}</td>
+                    <td>${exp.category}</td>
+                    <td style="font-weight:600; color:#334155;">${exp.title}</td>
+                    <td style="font-weight:600; color:#1e1b4b;">$${exp.amount}</td>
+                    <td><span class="payer-badge">${exp.payer}</span></td>
+                    <td></td>
+                    <td><button class="delete-btn" onclick="deleteExpense(${exp.id})">刪除</button></td>
+                `;
+            }
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderTable() {
+        renderTableOnly();
+
+        const totalPages = Math.ceil(expenses.length / recordsPerPage) || 1;
+        document.getElementById('page-text').innerText = `第 ${currentPage} / ${totalPages} 頁 (共 ${expenses.length} 筆)`;
+        
+        document.getElementById('btn-prev').disabled = (currentPage === 1);
+        document.getElementById('btn-next').disabled = (currentPage === totalPages);
+    }
+
+    function calculateBalances() {
+        let netBalances = {};
+        roommates.forEach(name => netBalances[name] = 0);
+        
+        let validSelectedCount = 0;
+
+        expenses.forEach(exp => {
+            if (selectedIds.includes(exp.id) && !exp.isSettlementReport) {
+                validSelectedCount++;
+                const totalSharers = exp.sharers.length;
+                const shareAmount = exp.amount / totalSharers;
+
+                netBalances[exp.payer] += exp.amount;
+                exp.sharers.forEach(sharer => {
+                    netBalances[sharer] -= shareAmount;
+                });
+            }
+        });
+
+        const batchBtn = document.getElementById('batch-settle-btn');
+        batchBtn.disabled = (validSelectedCount === 0);
+
+        const balancesOutput = document.getElementById('balances-output');
+        balancesOutput.innerHTML = '';
+        
+        roommates.forEach(name => {
+            const bal = netBalances[name];
+            let color = '#0f172a';
+            let prefix = '';
+            if (bal > 0.1) { color = '#16a34a'; prefix = '應收 $'; }
+            else if (bal < -0.1) { color = '#dc2626'; prefix = '應付 $'; }
+            else { prefix = '$'; }
+            
+            const div = document.createElement('div');
+            div.className = 'summary-item';
+            div.innerHTML = `
+                <h3>${name}</h3>
+                <p style="color: ${color}">${prefix}${Math.abs(bal).toFixed(1)}</p>
+            `;
+            balancesOutput.appendChild(div);
+        });
+
+        const strategyDiv = document.getElementById('settlement-strategy');
+        
+        if (validSelectedCount === 0) {
+            computedActions = [];
+            strategyDiv.innerHTML = '<strong>💡 轉帳建議：</strong><br><span style="color:#94a3b8;">請勾選中間明細。</span>';
+            return;
+        }
+
+        let creditors = [];
+        let debtors = [];
+
+        roommates.forEach(name => {
+            if (netBalances[name] > 0.1) creditors.push({name, amount: netBalances[name]});
+            if (netBalances[name] < -0.1) debtors.push({name, amount: Math.abs(netBalances[name])});
+        });
+
+        computedActions = [];
+
+        if (creditors.length === 0 && debtors.length === 0) {
+            strategyDiv.innerHTML = `<strong>💡 轉帳建議：</strong><br>金額剛好對平！`;
+            return;
+        }
+
+        let actionsText = [];
+        let tempDebtors = JSON.parse(JSON.stringify(debtors));
+        let tempCreditors = JSON.parse(JSON.stringify(creditors));
+
+        tempDebtors.forEach(d => {
+            tempCreditors.forEach(c => {
+                if (d.amount > 0.1 && c.amount > 0.1) {
+                    let transfer = Math.min(d.amount, c.amount);
+                    
+                    computedActions.push({
+                        from: d.name,
+                        to: c.name,
+                        amount: transfer.toFixed(1)
+                    });
+
+                    actionsText.push(`👉 <b>${d.name}</b> 需給 <b>${c.name}</b> <b>$${transfer.toFixed(1)}</b>`);
+                    d.amount -= transfer;
+                    c.amount -= transfer;
+                }
+            });
+        });
+        
+        strategyDiv.innerHTML = `<strong>💡 轉帳建議：</strong><br>${actionsText.join('<br>')}`;
+    }
+
+    saveAndRender();
+</script>
+
+</body>
+</html>
