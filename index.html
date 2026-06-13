@@ -148,15 +148,8 @@
         th { background-color: #f1f5f9; font-weight: 600; color: #475569; }
         
         /* 強制欄位展開，禁止垂直擠壓斷行 */
-        .col-payer {
-            width: 80px;
-            white-space: nowrap;
-        }
-        .col-action {
-            width: 70px;
-            white-space: nowrap;
-            text-align: center;
-        }
+        .col-payer { width: 80px; white-space: nowrap; }
+        .col-action { width: 70px; white-space: nowrap; text-align: center; }
         
         .settlement-item-block {
             display: flex;
@@ -241,9 +234,9 @@
                     <select id="category" required>
                         <option value="水費">💧 水費</option>
                         <option value="電費">⚡ 電費</option>
-                        <option value="瓦斯">🔥 瓦斯費</option>
+                        <option value="瓦斯">🔥 瓦斯</option>
                         <option value="網路費">🌐 網路費</option>
-                        <option value="管理費">🧾 管理費</option>
+                        <option value="管理費">🏢 管理費</option>
                         <option value="雜費">📦 雜費</option>
                     </select>
                 </div>
@@ -281,7 +274,7 @@
 
         <div class="card">
             <h2>租屋帳單與結算明細紀錄</h2>
-            <p style="font-size: 0.83rem; color: #64748b; margin-top: -10px; margin-bottom: 15px;">💡 每滿 30 筆自動分頁。勾選核取方塊組合帳單，右側看板會即時運算。</p>
+            <p style="font-size: 0.83rem; color: #64748b; margin-top: -10px; margin-bottom: 15px;">🚀 雲端即時同步已開啟！任何室友輸入，其他人刷新即可同步看到。</p>
             
             <div class="table-wrapper">
                 <table>
@@ -303,7 +296,7 @@
 
             <div class="pagination-container">
                 <button class="page-btn" id="btn-prev" onclick="changePage(-1)">上一頁</button>
-                <span class="page-info" id="page-text">第 1 / 1 頁</span>
+                <span class="page-info" id="page-text">載入中...</span>
                 <button class="page-btn" id="btn-next" onclick="changePage(1)">下一頁</button>
             </div>
         </div>
@@ -343,11 +336,27 @@
     </div>
 </div>
 
-<script>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    // 使用你專屬的 2026 最新 Firebase Spark 免費專案金鑰
+    const firebaseConfig = {
+        apiKey: "AIzaSyCquWcwhtizaDgS29FGygocrureUg3e3Jg",
+        authDomain: "ershizhang-roomies.firebaseapp.com",
+        projectId: "ershizhang-roomies",
+        storageBucket: "ershizhang-roomies.firebasestorage.app",
+        messagingSenderId: "461609623",
+        appId: "1:461609623:web:81bccddb54130be22127d2",
+        measurementId: "G-6DY527Y838"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const expenseCollection = collection(db, "expenses");
+
     const roommates = ['詹子', '張正', '李宜', '劉紫', '李翊'];
-    
-    // 使用專屬金鑰儲存
-    let expenses = JSON.parse(localStorage.getItem('rent_expenses_mobile_final_v15')) || [];
+    let expenses = [];
     let selectedIds = []; 
     let computedActions = []; 
     
@@ -356,7 +365,19 @@
     
     document.getElementById('update-date').value = new Date().toISOString().split('T')[0];
 
-    document.getElementById('expense-form').addEventListener('submit', function(e) {
+    // 全新即時監聽雲端資料庫邏輯
+    onSnapshot(expenseCollection, (snapshot) => {
+        expenses = [];
+        snapshot.forEach((doc) => {
+            expenses.push({ firestoreId: doc.id, ...doc.data() });
+        });
+        expenses.sort((a, b) => a.id - b.id);
+        renderTable();
+        calculateBalances();
+    });
+
+    // 新增費用到雲端資料庫
+    document.getElementById('expense-form').addEventListener('submit', async function(e) {
         e.preventDefault();
 
         const title = document.getElementById('title').value;
@@ -384,18 +405,20 @@
             updateDate
         };
 
-        expenses.push(expense);
-        
-        const totalPages = Math.ceil(expenses.length / recordsPerPage);
-        currentPage = totalPages || 1;
-
-        saveAndRender();
-        
-        document.getElementById('title').value = '';
-        document.getElementById('amount').value = '';
+        try {
+            await addDoc(expenseCollection, expense);
+            document.getElementById('title').value = '';
+            document.getElementById('amount').value = '';
+            
+            const totalPages = Math.ceil((expenses.length + 1) / recordsPerPage);
+            currentPage = totalPages || 1;
+        } catch (error) {
+            console.error("雲端寫入失敗:", error);
+            alert("雲端同步失敗，請檢查 Firestore Rules 權限設定！");
+        }
     });
 
-    function handleRowCheckboxChange(id, isChecked) {
+    window.handleRowCheckboxChange = function(id, isChecked) {
         if (isChecked) {
             if (!selectedIds.includes(id)) selectedIds.push(id);
         } else {
@@ -405,7 +428,7 @@
         renderTableOnly(); 
     }
 
-    function toggleSelectAll(masterCheckbox) {
+    window.toggleSelectAll = function(masterCheckbox) {
         const currentItems = getCurrentPageItems();
         currentItems.forEach(exp => {
             if (!exp.isSettlementReport) {
@@ -416,23 +439,24 @@
                 }
             }
         });
-        saveAndRender();
+        renderTable();
+        calculateBalances();
     }
 
-    function changePage(direction) {
+    window.changePage = function(direction) {
         currentPage += direction;
-        saveAndRender();
+        renderTable();
+        calculateBalances();
     }
 
     function getCurrentPageItems() {
-        expenses.sort((a,b) => a.id - b.id);
         const startIndex = (currentPage - 1) * recordsPerPage;
         const endIndex = startIndex + recordsPerPage;
         return expenses.slice(startIndex, endIndex);
     }
 
-    function toggleSettlementPaidStatus(rowId, actionIndex) {
-        const row = expenses.find(exp => exp.id === rowId);
+    window.toggleSettlementPaidStatus = async function(firestoreId, actionIndex) {
+        const row = expenses.find(exp => exp.firestoreId === firestoreId);
         if (row && row.actionsList && row.actionsList[actionIndex]) {
             const currentStatus = row.actionsList[actionIndex].isPaid;
             if (!currentStatus) {
@@ -442,11 +466,13 @@
                 row.actionsList[actionIndex].isPaid = false;
                 row.actionsList[actionIndex].payDate = '';
             }
-            saveAndRender();
+            
+            const docRef = doc(db, "expenses", firestoreId);
+            await updateDoc(docRef, { actionsList: row.actionsList });
         }
     }
 
-    function createSettlementRow() {
+    window.createSettlementRow = async function() {
         if (selectedIds.length === 0) return;
         
         const selectedExpenses = expenses.filter(exp => selectedIds.includes(exp.id) && !exp.isSettlementReport);
@@ -457,7 +483,7 @@
         
         const titlesCompiled = selectedExpenses.map(e => e.title).join(', ');
         
-        if (confirm(`確認要對這 ${selectedExpenses.length} 筆項目進行結算嗎？`)) {
+        if (confirm(`確認要對這 ${selectedExpenses.length} 筆項目進行雲端結算嗎？`)) {
             const today = new Date().toISOString().split('T')[0];
             
             const actionsListForStorage = computedActions.map(act => ({
@@ -479,33 +505,28 @@
                 actionsList: actionsListForStorage
             };
 
-            expenses.push(settlementRow);
+            await addDoc(expenseCollection, settlementRow);
             selectedIds = [];
             document.getElementById('select-all').checked = false;
             
-            const totalPages = Math.ceil(expenses.length / recordsPerPage);
+            const totalPages = Math.ceil((expenses.length + 1) / recordsPerPage);
             currentPage = totalPages || 1;
-
-            saveAndRender();
         }
     }
 
-    function deleteExpense(id) {
-        if(confirm('確定要刪除這筆紀錄嗎？')) {
-            expenses = expenses.filter(exp => exp.id !== id);
-            selectedIds = selectedIds.filter(sid => sid !== id);
-            
-            const totalPages = Math.ceil(expenses.length / recordsPerPage) || 1;
-            if (currentPage > totalPages) currentPage = totalPages;
-
-            saveAndRender();
+    window.deleteExpense = async function(firestoreId, id) {
+        if(confirm('確定要自雲端刪除這筆紀錄嗎？所有人的手機都會同步不見喔！')) {
+            try {
+                const docRef = doc(db, "expenses", firestoreId);
+                await deleteDoc(docRef);
+                selectedIds = selectedIds.filter(sid => sid !== id);
+                
+                const totalPages = Math.ceil((expenses.length - 1) / recordsPerPage) || 1;
+                if (currentPage > totalPages) currentPage = totalPages;
+            } catch (error) {
+                console.error("刪除失敗:", error);
+            }
         }
-    }
-
-    function saveAndRender() {
-        localStorage.setItem('rent_expenses_mobile_final_v15', JSON.stringify(expenses));
-        renderTable();
-        calculateBalances();
     }
 
     function renderTableOnly() {
@@ -513,8 +534,8 @@
         const pageItems = getCurrentPageItems();
         tbody.innerHTML = '';
 
-        if(pageItems.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:30px;">目前沒有任何款項紀錄</td></tr>`;
+        if(expenses.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:30px;">雲端資料庫目前沒有任何款項紀錄</td></tr>`;
             return;
         }
 
@@ -533,7 +554,7 @@
                                     <span class="settlement-text-info" style="color:#166534; text-decoration: line-through;">
                                         👉 <b>${act.from}</b> 需給 <b>${act.to}</b> $${act.amount} 元
                                     </span>
-                                    <button class="status-btn paid" onclick="toggleSettlementPaidStatus(${exp.id}, ${index})">
+                                    <button class="status-btn paid" onclick="toggleSettlementPaidStatus('${exp.firestoreId}', ${index})">
                                         ✅ 已交 <span class="pay-date-text">(${act.payDate})</span>
                                     </button>
                                 </div>`;
@@ -543,7 +564,7 @@
                                     <span class="settlement-text-info">
                                         👉 <b>${act.from}</b> 需給 <b>${act.to}</b> <b>$${act.amount}</b> 元
                                     </span>
-                                    <button class="status-btn unpaid" onclick="toggleSettlementPaidStatus(${exp.id}, ${index})">
+                                    <button class="status-btn unpaid" onclick="toggleSettlementPaidStatus('${exp.firestoreId}', ${index})">
                                         ❌ 未交
                                     </button>
                                 </div>`;
@@ -562,7 +583,7 @@
                     <td style="font-weight:600; color:#b45309;">$${exp.amount}</td>
                     <td style="color:#94a3b8;">---</td>
                     <td>${actionsHTML}</td>
-                    <td class="col-action"><button class="delete-btn" onclick="deleteExpense(${exp.id})">刪除</button></td>
+                    <td class="col-action"><button class="delete-btn" onclick="deleteExpense('${exp.firestoreId}', ${exp.id})">刪除</button></td>
                 `;
             } else {
                 const isChecked = selectedIds.includes(exp.id);
@@ -576,7 +597,7 @@
                     <td style="font-weight:600; color:#1e1b4b;">$${exp.amount}</td>
                     <td class="col-payer"><span class="payer-badge">${exp.payer}</span></td>
                     <td></td>
-                    <td class="col-action"><button class="delete-btn" onclick="deleteExpense(${exp.id})">刪除</button></td>
+                    <td class="col-action"><button class="delete-btn" onclick="deleteExpense('${exp.firestoreId}', ${exp.id})">刪除</button></td>
                 `;
             }
             tbody.appendChild(tr);
@@ -682,8 +703,6 @@
         
         strategyDiv.innerHTML = `<strong>💡 轉帳建議：</strong><br>${actionsText.join('<br>')}`;
     }
-
-    saveAndRender();
 </script>
 
 </body>
