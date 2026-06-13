@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bill Spent_二十張路</title>
+    <title>二十張路租屋處公費試算</title>
     <style>
         :root {
             --primary: #4f46e5;
@@ -24,10 +24,12 @@
             background-color: var(--bg);
             color: var(--text);
             margin: 0;
-            padding: 12px;
+            padding: 10px;
             display: flex;
             flex-direction: column;
             align-items: center;
+            width: 100%;
+            overflow-x: hidden; /* 強制消除手機左右晃動，一打開完美貼合 */
         }
         @media (min-width: 768px) {
             body { padding: 20px; }
@@ -38,19 +40,22 @@
             width: 100%;
         }
         header {
-            margin-bottom: 24px;
+            margin-bottom: 16px;
             text-align: center;
         }
-        h1 { margin-bottom: 8px; color: #0f172a; font-size: 1.6rem; }
+        h1 { margin-bottom: 4px; color: #0f172a; font-size: 1.4rem; }
+        header p { margin: 0; font-size: 0.82rem; color: #64748b; }
         @media (min-width: 768px) {
             h1 { font-size: 1.8rem; }
+            header p { font-size: 0.95rem; }
+            header { margin-bottom: 24px; }
         }
         
-        /* 三欄式自適應佈局網格 */
+        /* 三欄式自適應網格 */
         .three-column-grid {
             display: grid;
             grid-template-columns: 1fr;
-            gap: 20px;
+            gap: 16px;
             margin-bottom: 24px;
             align-items: start;
             width: 100%;
@@ -68,16 +73,16 @@
             box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
             border: 1px solid var(--border);
             height: fit-content;
-            margin-bottom: 12px;
+            margin-bottom: 4px;
             width: 100%;
         }
         @media (min-width: 768px) {
             .card { padding: 20px; margin-bottom: 24px; }
         }
         
-        h2 { font-size: 1.15rem; margin-top: 0; margin-bottom: 16px; border-bottom: 2px solid var(--border); padding-bottom: 8px; color: #334155; }
-        .form-group { margin-bottom: 14px; }
-        label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.9rem; }
+        h2 { font-size: 1.1rem; margin-top: 0; margin-bottom: 14px; border-bottom: 2px solid var(--border); padding-bottom: 6px; color: #334155; }
+        .form-group { margin-bottom: 12px; }
+        label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.88rem; }
         input, select {
             width: 100%;
             padding: 10px 12px;
@@ -85,6 +90,7 @@
             border: 1px solid var(--border);
             font-size: 0.95rem;
             background-color: #fff;
+            color: var(--text);
         }
         
         .checkbox-group {
@@ -326,8 +332,9 @@
 
 <script>
     const roommates = ['詹子', '張正', '李宜', '劉紫', '李翊'];
-    // 使用全新儲存庫名稱，防範舊結構殘留
-    let expenses = JSON.parse(localStorage.getItem('rent_expenses_responsive_final_v13')) || [];
+    
+    // 【核心修正】：更換全新的儲存庫金鑰名稱，強制衝刷掉手機上殘留的舊資料
+    let expenses = JSON.parse(localStorage.getItem('rent_expenses_mobile_final_v14')) || [];
     let selectedIds = []; 
     let computedActions = []; 
     
@@ -483,7 +490,7 @@
     }
 
     function saveAndRender() {
-        localStorage.setItem('rent_expenses_responsive_final_v13', JSON.stringify(expenses));
+        localStorage.setItem('rent_expenses_mobile_final_v14', JSON.stringify(expenses));
         renderTable();
         calculateBalances();
     }
